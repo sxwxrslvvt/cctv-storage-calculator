@@ -68,6 +68,12 @@ test('text resize to 200% preserves controls and results', async ({ page }, test
   expect(enlarged).toBeGreaterThanOrEqual(size * 1.99);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('text-200-percent.png'), fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('text-200-percent-viewport.png') });
+  expect(await page.locator('.result-number').evaluate(element => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    return range.getClientRects().length;
+  })).toBe(1);
   await page.getByRole('combobox', { name: 'Разрешение', exact: true }).selectOption('custom');
   await page.getByLabel('Режим записи').selectOption('daily');
   await page.getByLabel('Начало').fill('22:00');
@@ -96,6 +102,11 @@ test('observational load and interaction timings at one and 100 groups', async (
       timings[String(count)].push((await page.evaluate(() => performance.now())) - start);
     }
   }
+  const allocation = page.getByRole('list', { name: 'Распределение архива' });
+  await expect(allocation.getByRole('button')).toHaveCount(100);
+  await allocation.getByRole('button').last().focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('group', { name: 'Группа 100', exact: true }).getByLabel('Камер', { exact: true })).toBeFocused();
   const path = testInfo.outputPath('browser-timings.json');
   const paint = await page.evaluate(() => (window as unknown as { __cctvQAMetrics: { cls: number; lcp: number } }).__cctvQAMetrics);
   await writeFile(path, JSON.stringify({ navigation, paint, timings, workers: testInfo.config.workers, note: 'Browser + Playwright round trips; no CPU/network throttling. Observational, not Lighthouse scores.' }, null, 2));
