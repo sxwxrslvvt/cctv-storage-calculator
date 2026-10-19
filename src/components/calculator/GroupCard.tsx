@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useRef } from 'react';
 import { Camera, Trash2, Clock3 } from 'lucide-react';
 import { type GroupDraft, resolutions } from '../../features/calculator/config';
 import { ru } from '../../lib/ru';
@@ -11,12 +11,31 @@ interface Props {
   onChange: (id: string, patch: Partial<GroupDraft>) => void; onRemove: (id: string) => void;
 }
 export const GroupCard = memo(function GroupCard({ group: g, index, removable, errors, onChange, onRemove }: Props) {
+  const card = useRef<HTMLFieldSetElement>(null);
   const scheduleError = errors[`${g.id}.schedule`];
-  return <fieldset className="group-card">
+  function remove() {
+    const element = card.current;
+    if (element?.animate && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      // The inert snapshot exits independently; calculations use the removed group immediately.
+      const bounds = element.getBoundingClientRect();
+      const snapshot = element.cloneNode(true) as HTMLFieldSetElement;
+      snapshot.classList.add('group-exit');
+      snapshot.inert = true;
+      snapshot.disabled = true;
+      snapshot.setAttribute('aria-hidden', 'true');
+      for (const node of snapshot.querySelectorAll('[id]')) node.removeAttribute('id');
+      Object.assign(snapshot.style, { top: `${bounds.top}px`, left: `${bounds.left}px`, width: `${bounds.width}px`, height: `${bounds.height}px` });
+      document.body.append(snapshot);
+      const animation = snapshot.animate([{ opacity: 0.7, transform: 'translateY(0) scale(1)' }, { opacity: 0, transform: 'translateY(-8px) scale(.98)' }], { duration: 180, easing: 'ease-out' });
+      void animation.finished.then(() => snapshot.remove(), () => snapshot.remove());
+    }
+    onRemove(g.id);
+  }
+  return <fieldset ref={card} className="group-card">
     <legend className="sr-only">{ru.group} {index + 1}</legend>
     <div className="group-heading"><span className="group-icon"><Camera size={18} aria-hidden="true" /></span>
       <h3>{ru.group} {index + 1}</h3><span className="group-index">{String(index + 1).padStart(2, '0')}</span>
-      <button type="button" className="icon-button" disabled={!removable} onClick={() => onRemove(g.id)} aria-label={`${ru.remove} ${index + 1}`}><Trash2 size={17} aria-hidden="true" /></button>
+      <button type="button" className="icon-button" disabled={!removable} onClick={remove} aria-label={`${ru.remove} ${index + 1}`}><Trash2 size={17} aria-hidden="true" /></button>
     </div>
     <div className="group-fields">
       <NumberField id={`${g.id}.count`} label={ru.cameras} value={g.count} error={errors[`${g.id}.count`]} onChange={count => onChange(g.id, { count })} integer />
