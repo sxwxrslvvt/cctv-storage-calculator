@@ -1,10 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
+import { watchBrowserErrors } from './browser';
 
 test.beforeEach(async ({ page }) => {
-  page.on('pageerror', error => { throw error; });
-  page.on('console', message => {
-    if (message.type() === 'error') throw new Error(message.text());
-  });
+  watchBrowserErrors(page);
   await page.goto('./');
 });
 
@@ -84,7 +82,7 @@ test('narrow screen and keyboard access', async ({ page }) => {
   await expect(page.getByLabel('Битрейт на камеру, Mbps')).toBeFocused();
 });
 
-for (const width of [320, 375, 768, 1440]) {
+for (const width of [320, 360, 375, 390, 430, 768, 1024, 1440, 1920]) {
   test(`release review at ${width}px: large values, errors and group identity`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     const noOverflow = async () => {
