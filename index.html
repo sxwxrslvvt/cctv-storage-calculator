@@ -3,7 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f5f6f8" />
+    <meta name="theme-color" content="#eef2f7" />
+    <style>html{background:#eef2f7;color-scheme:light}html[data-theme="dark"]{background:#0f1723;color-scheme:dark}</style>
+    <script>
+      (() => {
+        let preference = 'system';
+        try { const saved = localStorage.getItem('cctv-theme'); if (['light', 'dark', 'system'].includes(saved)) preference = saved; } catch {}
+        document.documentElement.dataset.themePreference = preference;
+        document.documentElement.dataset.theme = preference === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : preference;
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', getComputedStyle(document.documentElement).backgroundColor);
+      })();
+    </script>
     <meta name="description" content="Расчёт объёма видеоархива и срока хранения CCTV: независимые группы камер, битрейт и расписание записи." />
     <title>CCTV — калькулятор видеоархива</title>
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
