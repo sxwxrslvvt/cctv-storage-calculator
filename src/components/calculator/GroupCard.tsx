@@ -2,6 +2,7 @@ import { Camera, Trash2, Clock3 } from 'lucide-react';
 import { type GroupDraft, resolutions } from '../../features/calculator/config';
 import { ru } from '../../lib/ru';
 import { NumberField } from '../ui/NumberField';
+import { isResolution } from '../../domain/storage/calculator';
 
 interface Props {
   group: GroupDraft; index: number; removable: boolean;
@@ -22,7 +23,8 @@ export function GroupCard({ group: g, index, removable, errors, onChange, onRemo
       <label className="field"><span>{ru.codec}</span><select value={g.codec} onChange={e => onChange({ codec: e.target.value as GroupDraft['codec'] })}><option>H.264</option><option>H.265</option></select></label>
       <label className="field"><span>{ru.resolution}</span><select value={g.resolution} onChange={e => {
         const value = e.target.value;
-        const dimensions = resolutions[value as keyof typeof resolutions];
+        if (!isResolution(value)) return;
+        const dimensions = value === 'custom' ? null : resolutions[value];
         onChange({ resolution: value, ...(dimensions ? { width: String(dimensions[0]), height: String(dimensions[1]) } : {}) });
       }}>{Object.keys(resolutions).map(key => <option key={key}>{key}</option>)}<option value="custom">{ru.custom}</option></select></label>
       {g.resolution === 'custom' && <>

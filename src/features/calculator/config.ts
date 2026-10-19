@@ -1,8 +1,6 @@
-import { type CameraGroup, type Schedule, type StorageUnit, LIMITS, calculate, toBytes, dailySeconds, mbpsToBits } from '../../domain/storage/calculator';
+import { type CameraGroup, type Schedule, type StorageUnit, LIMITS, calculate, toBytes, dailySeconds, mbpsToBits, isCodec, isResolution } from '../../domain/storage/calculator';
 
-export const resolutions = {
-  '720p': [1280, 720], '1080p': [1920, 1080], '4MP': [2560, 1440], '4K': [3840, 2160],
-} as const;
+export { resolutions } from '../../domain/storage/calculator';
 export type GroupDraft = Omit<CameraGroup, 'count' | 'bitrateMbps' | 'width' | 'height' | 'schedule'> & {
   count: string; bitrateMbps: string; width: string; height: string;
   mode: Schedule['mode']; start: string; end: string;
@@ -31,24 +29,31 @@ export function evaluate(draft: Draft) {
   }
   const numeric = (key: string, value: string, min: number, max: number, integer = false) => field(key, () => {
     const number = parseNumber(value);
-    if (number < min || number > max || (integer && !Number.isInteger(number))) {
+    if (number < min || number > max || (integer && !/^\d+(?:[.,]0+)?$/.test(value.trim()))) {
       throw new RangeError(`${integer ? 'Целое число' : 'Число'} от ${min} до ${max}.`);
     }
     return number;
   });
   const days = numeric('days', draft.days, 1, LIMITS.days, true);
   const capacity = numeric('capacity', draft.capacity, 0, LIMITS.capacity);
+  draft.groups.forEach(g => {
+    if (!isCodec(g.codec)) errors[`${g.id}.codec`] = 'Выберите H.264 или H.265.';
+    if (!isResolution(g.resolution)) errors[`${g.id}.resolution`] = 'Выберите стандартное или своё разрешение.';
+  });
   const groups: CameraGroup[] = draft.groups.map(g => ({
     ...g,
     count: numeric(`${g.id}.count`, g.count, 0, LIMITS.cameras, true),
     bitrateMbps: field(`${g.id}.bitrateMbps`, () => {
       const n = parseNumber(g.bitrateMbps);
+      if (!/^\d+(?:[.,]\d{1,3}0*)?$/.test(g.bitrateMbps.trim())) {
+        throw new RangeError('Битрейт: не более 3 знаков после запятой.');
+      }
       mbpsToBits(n);
       return n;
     }),
     width: numeric(`${g.id}.width`, g.width, 1, LIMITS.dimension, true),
     height: numeric(`${g.id}.height`, g.height, 1, LIMITS.dimension, true),
-    schedule: g.mode === 'continuous' ? { mode: 'continuous' } : { mode: 'daily', start: g.start, end: g.end },
+    schedule: g.mode === 'continuous' ? { mode: 'continuous' } : { mode: g.mode, start: g.start, end: g.end },
   }));
   // Schedule validation also runs when another field is invalid.
   groups.forEach(g => field(`${g.id}.schedule`, () => dailySeconds(g.schedule)));

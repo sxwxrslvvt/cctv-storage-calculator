@@ -2,6 +2,9 @@ import { test, expect, type Page } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
   page.on('pageerror', error => { throw error; });
+  page.on('console', message => {
+    if (message.type() === 'error') throw new Error(message.text());
+  });
   await page.goto('./');
 });
 
@@ -80,3 +83,68 @@ test('narrow screen and keyboard access', async ({ page }) => {
   await page.keyboard.press('Tab');
   await expect(page.getByLabel('Битрейт на камеру, Mbps')).toBeFocused();
 });
+
+for (const width of [320, 375, 768, 1440]) {
+  test(`release review at ${width}px: large values, errors and group identity`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    const noOverflow = async () => {
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    };
+    await page.getByLabel('Камер', { exact: true }).fill('10000');
+    await page.getByLabel('Срок хранения, дней').fill('1');
+    await page.getByLabel('Битрейт на камеру, Mbps').fill('83');
+    await expect(page.getByTestId('total-tb')).toHaveText(/8\s964TB/);
+    for (const unit of ['gb', 'gib', 'tib']) {
+      expect(await page.getByTestId(`total-${unit}`).evaluate(element => {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        return range.getClientRects().length;
+      })).toBe(1);
+    }
+    await noOverflow();
+    await page.screenshot({ path: testInfo.outputPath('large.png'), fullPage: true });
+
+    await page.getByLabel('Срок хранения, дней').fill('3650');
+    await expect(page.getByRole('alert')).toContainText('Общий объём ограничен');
+    await expect(page.getByTestId('total-tb')).toHaveCount(0);
+    await expect(page.getByTestId('retention')).toHaveText('—');
+    await noOverflow();
+    await page.getByLabel('Срок хранения, дней').fill('1');
+    await page.getByLabel('Битрейт на камеру, Mbps').fill('1.0001');
+    await expect(page.getByRole('alert')).toContainText('не более 3 знаков');
+    await noOverflow();
+    await page.screenshot({ path: testInfo.outputPath('errors.png'), fullPage: true });
+
+    await page.getByRole('button', { name: 'Сбросить' }).click();
+    for (const preset of ['720p', '1080p', '4MP', '4K']) {
+      await page.getByRole('combobox', { name: 'Разрешение', exact: true }).selectOption(preset);
+      await expect(page.getByTestId('total-tb')).toHaveText('5,184TB');
+    }
+    await page.getByRole('combobox', { name: 'Разрешение', exact: true }).selectOption('custom');
+    await expect(page.getByLabel('Ширина, px')).toHaveValue('3840');
+    await expect(page.getByLabel('Высота, px')).toHaveValue('2160');
+    await page.getByLabel('Ширина, px').fill('');
+    await expect(page.getByTestId('total-tb')).toHaveCount(0);
+    await page.getByLabel('Ширина, px').fill('1');
+    await page.getByLabel('Высота, px').fill('16384');
+    await expect(page.getByTestId('total-tb')).toHaveText('5,184TB');
+
+    await page.getByRole('button', { name: 'Добавить группу' }).click();
+    await page.getByRole('button', { name: 'Добавить группу' }).click();
+    const third = page.getByRole('group', { name: 'Группа 3' });
+    await third.getByLabel('Камер', { exact: true }).fill('1');
+    await third.getByLabel('Битрейт на камеру, Mbps').fill('8');
+    await page.getByRole('button', { name: 'Удалить группу 2' }).click();
+    const second = page.getByRole('group', { name: 'Группа 2' });
+    await expect(second.getByLabel('Камер', { exact: true })).toHaveValue('1');
+    await expect(second.getByLabel('Битрейт на камеру, Mbps')).toHaveValue('8');
+    await expect(page.getByTestId('total-gb')).toHaveText(/7\s776/);
+    await page.getByRole('button', { name: 'Добавить группу' }).click();
+    await expect(page.getByRole('group', { name: 'Группа 3' }).getByLabel('Камер', { exact: true })).toHaveValue('4');
+    await expect(second.getByLabel('Битрейт на камеру, Mbps')).toHaveValue('8');
+    await noOverflow();
+    await second.getByLabel('Камер', { exact: true }).focus();
+    await page.keyboard.press('Tab');
+    await expect(second.getByLabel('Битрейт на камеру, Mbps')).toBeFocused();
+  });
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculate, dailySeconds, fromBytes, groupBytesPerDay, mbpsToBits, toBytes, UNITS, type CameraGroup } from './calculator';
+import { calculate, dailySeconds, fromBytes, groupBytesPerDay, mbpsToBits, toBytes, UNITS, type CameraGroup, type Schedule } from './calculator';
 
 const group = (patch: Partial<CameraGroup> = {}): CameraGroup => ({ id: 'a', count: 1, bitrateMbps: 1, codec: 'H.264', resolution: '1080p', width: 1920, height: 1080, schedule: { mode: 'continuous' }, ...patch });
 
@@ -62,6 +62,13 @@ describe('units and schedules', () => {
 });
 
 describe('validation and limits', () => {
+  it('rejects an unknown recording mode instead of treating it as a daily interval', () => {
+    const schedule = { mode: 'weekly', start: '08:00', end: '20:00' } as unknown as Schedule;
+    expect(() => dailySeconds(schedule)).toThrow(RangeError);
+  });
+  it('rejects an unsupported codec', () => {
+    expect(() => groupBytesPerDay(group({ codec: 'AV1' as CameraGroup['codec'] }))).toThrow(RangeError);
+  });
   it.each([NaN, Infinity, -Infinity, -1, 0.5, 10001])('rejects camera count %s', count => expect(() => groupBytesPerDay(group({ count }))).toThrow());
   it.each([NaN, Infinity, -1, 1000.001, 0.0001, 1e-12])('rejects bitrate %s', bitrateMbps => expect(() => groupBytesPerDay(group({ bitrateMbps }))).toThrow());
   it.each([NaN, Infinity, -1, 0, 1.5, 3651])('rejects retention period %s', days => expect(() => calculate([group()], days, 1e12)).toThrow());

@@ -1,12 +1,22 @@
 export const UNITS = { GB: 1e9, TB: 1e12, GiB: 2 ** 30, TiB: 2 ** 40 } as const;
 export type StorageUnit = keyof typeof UNITS;
+export const resolutions = {
+  '720p': [1280, 720], '1080p': [1920, 1080], '4MP': [2560, 1440], '4K': [3840, 2160],
+} as const;
+export type Resolution = keyof typeof resolutions | 'custom';
+export function isResolution(value: string): value is Resolution {
+  return value === 'custom' || Object.hasOwn(resolutions, value);
+}
+export function isCodec(value: string): value is CameraGroup['codec'] {
+  return value === 'H.264' || value === 'H.265';
+}
 export type Schedule = { mode: 'continuous' } | { mode: 'daily'; start: string; end: string };
 export interface CameraGroup {
   id: string;
   count: number;
   bitrateMbps: number;
   codec: 'H.264' | 'H.265';
-  resolution: string;
+  resolution: Resolution;
   width: number;
   height: number;
   schedule: Schedule;
@@ -47,6 +57,7 @@ export function fromBytes(bytes: number, unit: StorageUnit): number {
 
 export function dailySeconds(schedule: Schedule): number {
   if (schedule.mode === 'continuous') return 86400;
+  if (schedule.mode !== 'daily') throw new RangeError('Недопустимый режим записи.');
   const minutes = (time: string): number => {
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new RangeError('Укажите время в формате ЧЧ:ММ.');
     const [h, m] = time.split(':').map(Number);
@@ -58,6 +69,8 @@ export function dailySeconds(schedule: Schedule): number {
 }
 
 export function groupBytesPerDay(group: CameraGroup): number {
+  if (!isCodec(group.codec)) throw new RangeError('Выберите H.264 или H.265.');
+  if (!isResolution(group.resolution)) throw new RangeError('Выберите стандартное или своё разрешение.');
   numberInRange(group.count, 0, LIMITS.cameras, true);
   numberInRange(group.width, 1, LIMITS.dimension, true);
   numberInRange(group.height, 1, LIMITS.dimension, true);

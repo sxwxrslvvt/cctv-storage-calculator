@@ -14,33 +14,14 @@ concurrency:
 jobs:
   validate:
     uses: ./.github/workflows/ci.yml
+    with:
+      upload_pages: true
     permissions:
       contents: read
-
-  build:
-    needs: validate
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          path: dist
 
   deploy:
     if: github.ref == 'refs/heads/main'
-    needs: build
+    needs: validate
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -49,6 +30,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/configure-pages@v5
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
