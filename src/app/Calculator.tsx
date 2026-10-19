@@ -6,6 +6,7 @@ import { ru } from '../lib/ru';
 import { GroupCard } from '../components/calculator/GroupCard';
 import { NumberField } from '../components/ui/NumberField';
 import { ThemeControl } from '../features/theme/ThemeControl';
+import { StorageBreakdown } from '../components/calculator/StorageBreakdown';
 
 const formatters = {
   0: new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }),
@@ -24,7 +25,10 @@ export function Calculator() {
   const nextId = useRef(2);
   const { errors, result } = evaluate(draft);
   const update = useCallback((id: string, patch: Partial<GroupDraft>) => setDraft(previous => ({ ...previous, groups: previous.groups.map(g => g.id === id ? { ...g, ...patch } : g) })), []);
-  const remove = useCallback((id: string) => setDraft(previous => ({ ...previous, groups: previous.groups.filter(g => g.id !== id) })), []);
+  const remove = useCallback((id: string) => {
+    setDraft(previous => ({ ...previous, groups: previous.groups.filter(g => g.id !== id) }));
+    queueMicrotask(() => document.getElementById('add-group')?.focus());
+  }, []);
   const groupErrors = Object.keys(errors).length ? errors : EMPTY_ERRORS;
   return <>
     <a className="skip-link" href="#calculator">{ru.skip}</a>
@@ -44,7 +48,7 @@ export function Calculator() {
             <div className="section-label"><h3>{ru.groups}</h3><span>{String(draft.groups.length).padStart(2, '0')}</span></div>
             <div className="group-list">{draft.groups.map((g, index) => <GroupCard key={g.id} group={g} index={index} errors={groupErrors} removable={draft.groups.length > 1}
               onChange={update} onRemove={remove} />)}</div>
-            <button type="button" className="add-button" disabled={draft.groups.length >= LIMITS.groups} onClick={() => {
+            <button id="add-group" type="button" className="add-button" disabled={draft.groups.length >= LIMITS.groups} onClick={() => {
               const group = newGroup(String(nextId.current++));
               setDraft(previous => ({ ...previous, groups: [...previous.groups, group] }));
             }}><Plus size={17} aria-hidden="true" />{ru.add}</button>
@@ -60,11 +64,11 @@ export function Calculator() {
             <p className="sr-only" role="status" aria-atomic="true">{result ? `${ru.result}: ${format(fromBytes(result.totalBytes, 'TB'))} TB` : ru.invalid}</p>
             <div>
               {result ? <>
-                <p className="hero-value" data-testid="total-tb">{format(fromBytes(result.totalBytes, 'TB'))}<span>TB</span></p>
+                <p className="hero-value" data-testid="total-tb"><span className="result-number" key={result.totalBytes}>{format(fromBytes(result.totalBytes, 'TB'))}</span><span className="hero-unit">TB</span></p>
                 <p className="result-caption"><strong>{ru.archiveFor} {draft.days} {ru.dayUnit}</strong><span>{ru.resultHint}</span></p>
                 <dl className="unit-grid">{(['GB', 'GiB', 'TiB'] as const).map(unit => <div key={unit}><dt>{unit}</dt><dd data-testid={`total-${unit.toLowerCase()}`}>{format(fromBytes(result.totalBytes, unit))}</dd></div>)}</dl>
                 <div className="result-stats"><div><span>{ru.perDay}</span><strong>{format(fromBytes(result.bytesPerDay, 'GB'))} GB</strong></div><div><span>{ru.totalCameras}</span><strong>{format(result.cameraCount, 0)}</strong></div></div>
-                <div className="group-breakdown"><h3>{ru.breakdown}</h3>{result.summaries.map((summary, index) => <div key={summary.id}><span><i />{ru.group} {index + 1}</span><strong>{format(fromBytes(summary.bytes, 'TB'))} TB</strong></div>)}</div>
+                <StorageBreakdown summaries={result.summaries} totalBytes={result.totalBytes} />
               </> : <div className="invalid-result"><h3>{ru.invalid}</h3><p>{ru.invalidHint}</p>{errors.total && <p role="alert">{ru.limit}</p>}</div>}
             </div>
           </section>

@@ -43,7 +43,7 @@ test('stored theme is applied before the app module loads', async ({ page }) => 
   const navigation = page.goto('./');
   try {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(15, 23, 35)');
+    await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(17, 21, 31)');
     await expect(page.locator('#root')).toBeEmpty();
   } finally { release(); }
   await navigation;
@@ -65,7 +65,7 @@ for (const theme of ['light', 'dark']) {
   test(`${theme} WCAG states, reduced motion and keyboard`, async ({ page }, testInfo) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.getByLabel('Оформление').selectOption(theme);
-    for (const [width, height] of [[320, 568], [375, 812], [768, 1024], [1440, 900]]) {
+    for (const [width, height] of [[320, 568], [360, 800], [375, 812], [390, 844], [430, 932], [768, 1024], [1024, 900], [1440, 900], [1920, 1080]]) {
       await page.setViewportSize({ width, height });
       await page.screenshot({ path: testInfo.outputPath(`${theme}-${width}.png`), fullPage: true });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
