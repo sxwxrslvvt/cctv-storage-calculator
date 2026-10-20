@@ -67,6 +67,17 @@ test('text resize to 200% preserves controls and results', async ({ page }, test
   const enlarged = await page.getByLabel('Камер', { exact: true }).evaluate(el => parseFloat(getComputedStyle(el).fontSize));
   expect(enlarged).toBeGreaterThanOrEqual(size * 1.99);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(await page.locator('h1').evaluate(element => {
+    const node = element.firstChild!;
+    let offset = 0;
+    return element.textContent!.split(' ').every(word => {
+      const range = document.createRange();
+      range.setStart(node, offset);
+      range.setEnd(node, offset + word.length);
+      offset += word.length + 1;
+      return range.getClientRects().length === 1;
+    });
+  })).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('text-200-percent.png'), fullPage: true });
   await page.screenshot({ path: testInfo.outputPath('text-200-percent-viewport.png') });
   expect(await page.locator('.result-number').evaluate(element => {
