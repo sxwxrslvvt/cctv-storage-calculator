@@ -30,9 +30,6 @@ export function StorageBreakdown({ summaries, totalBytes, selectedId, onSelect }
           onFocus={() => setFocusedId(group.id)} onBlur={() => setFocusedId(null)}
           onClick={() => {
             onSelect(group.id);
-            const input = document.getElementById(`${group.id}.count`);
-            input?.focus({ preventScroll: true });
-            input?.scrollIntoView({ block: 'center', behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
           }}>
           <span className="allocation-name"><i className={`allocation-color-${index % 8}`} aria-hidden="true" />{ru.group} {index + 1}</span>{' '}
           <strong>{value} TB</strong>{' '}<span className="allocation-percent">{shareLabel}%</span><span className="sr-only">. {ru.editGroup}</span>

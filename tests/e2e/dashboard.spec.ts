@@ -36,7 +36,7 @@ test('native theme popup has explicit colors and complete keyboard behavior', as
   await page.keyboard.press('Enter');
   await expect(select).toHaveValue('dark');
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('button', { name: 'Сбросить' })).toBeFocused();
+  await expect(page.getByLabel('Доступная ёмкость')).toBeFocused();
   await expect(page.getByTestId('total-tb')).toHaveText('5,184TB');
 });
 

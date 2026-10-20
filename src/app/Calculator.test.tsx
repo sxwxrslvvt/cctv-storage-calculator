@@ -11,6 +11,22 @@ async function fill(label: string, value: string) {
 }
 
 describe('calculator interactions', () => {
+  it('applies a real preset, clears selection after edits and resets defaults', async () => {
+    const user = userEvent.setup();
+    render(<Calculator />);
+    const preset = screen.getByRole('button', { name: /^Магазин/ });
+    await user.click(preset);
+    expect(preset).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Камер')).toHaveValue('8');
+    expect(screen.getByLabelText('Начало')).toHaveValue('08:00');
+    expect(screen.getByLabelText('Конец')).toHaveValue('22:00');
+    expect(screen.getByTestId('total-tb')).toHaveTextContent('6,048');
+    await fill('Камер', '9');
+    expect(preset).toHaveAttribute('aria-pressed', 'false');
+    await user.click(screen.getByRole('button', { name: 'Сбросить' }));
+    expect(screen.getByLabelText('Камер')).toHaveValue('4');
+    expect(screen.getByTestId('total-tb')).toHaveTextContent('5,184');
+  });
   it('renders documented defaults and all storage units', () => {
     render(<Calculator />);
     expect(screen.getByRole('heading', { level: 1 })).toBeVisible();
@@ -82,7 +98,7 @@ describe('calculator interactions', () => {
     expect(screen.getByTestId('retention')).toHaveTextContent('Без ограничения');
     await user.click(screen.getByRole('button', { name: 'Добавить группу' }));
     await user.click(screen.getByRole('button', { name: 'Сбросить' }));
-    expect(screen.getAllByRole('group')).toHaveLength(1);
+    expect(screen.getAllByRole('group', { name: /^Группа \d+$/ })).toHaveLength(1);
     expect(screen.getByLabelText('Битрейт на камеру, Mbps')).toHaveValue('4');
     expect(screen.getByTestId('total-tb')).toHaveTextContent('5,184');
   });

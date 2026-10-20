@@ -32,6 +32,8 @@ export function ArchiveForecast({ result, days, availableBytes, unit }: Props) {
   const endY = y(result.totalBytes);
   const capacityY = y(availableBytes);
   const text = `${ru.forecastDay} ${format(day, 0)}: ${format(fromBytes(bytes, unit))} ${unit}`;
+  const tooltipWidth = Math.min(260, width - 16);
+  const tooltipX = Math.max(8, Math.min(width - tooltipWidth - 8, x(day) - tooltipWidth / 2));
   function selectPoint(event: PointerEvent<SVGSVGElement>) {
     const bounds = event.currentTarget.getBoundingClientRect();
     const position = (event.clientX - bounds.left) / bounds.width * width;
@@ -48,9 +50,11 @@ export function ArchiveForecast({ result, days, availableBytes, unit }: Props) {
       <path className="chart-area" fill={`url(#${id}-area)`} d={`M72,218 L${right},${endY} L${right},218 Z`} />
       <line key={`capacity-${availableBytes}`} className="chart-capacity" x1="72" x2={right} y1={capacityY} y2={capacityY} data-testid="capacity-line" />
       <path key={`archive-${result.totalBytes}`} className="chart-line" d={`M72,218 L${right},${endY}`} />
+      {[0, days / 2, days].map(point => <circle key={point} className="chart-waypoint" cx={x(point)} cy={y(forecastBytes(result, days, point))} r="3" />)}
       {fillDay !== null && <g className="chart-fill-marker" data-testid="fill-marker"><circle cx={x(fillDay)} cy={capacityY} r="6" /><title>{ru.diskFills}: {format(fillDay, 2)} {ru.dayUnit}</title></g>}
       <line className="chart-cursor" x1={x(day)} x2={x(day)} y1="42" y2="218" />
       <circle className="chart-current" cx={x(day)} cy={y(bytes)} r="5" />
+      <g aria-hidden="true"><rect className="chart-tooltip" x={tooltipX} y="3" width={tooltipWidth} height="29" rx="7" /><text className="chart-tooltip-text" x={tooltipX + tooltipWidth / 2} y="22" textAnchor="middle">{day} {ru.dayUnit} · ≈{axisFormat.format(fromBytes(bytes, unit))} {unit}</text></g>
       {(width < 360 ? [0, days] : [0, days / 2, days]).map(value => <text key={value} className="chart-axis" x={x(value)} y="246" textAnchor="middle">{format(value, 1)} {ru.dayUnit}</text>)}
     </svg>
     <div className="forecast-readout"><span>{ru.forecastDay} {day}</span><strong data-testid="forecast-volume">{format(fromBytes(bytes, unit))} {unit}</strong></div>

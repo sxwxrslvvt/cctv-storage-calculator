@@ -10,6 +10,10 @@ import { ThemeControl } from '../features/theme/ThemeControl';
 import { StorageBreakdown } from '../components/calculator/StorageBreakdown';
 import { ResultsOverview } from '../components/calculator/ResultsOverview';
 import { ArchiveForecast } from '../components/calculator/ArchiveForecast';
+import { StorageCapacity } from '../components/calculator/StorageCapacity';
+import { CameraSystem } from '../components/calculator/CameraSystem';
+import { ScenarioPresets } from '../components/calculator/ScenarioPresets';
+import { scenarioDraft, scenarios } from '../features/calculator/scenarios';
 
 const EMPTY_ERRORS: Readonly<Record<string, string>> = Object.freeze({});
 
@@ -24,8 +28,19 @@ export function Calculator() {
     setSelectedGroupId(previous => previous === id ? null : previous);
     queueMicrotask(() => document.getElementById('add-group')?.focus());
   }, []);
-  const selectGroup = useCallback((id: string) => setSelectedGroupId(id), []);
+  const selectGroup = useCallback((id: string) => {
+    setSelectedGroupId(id);
+    const input = document.getElementById(`${id}.count`);
+    input?.focus({ preventScroll: true });
+    input?.scrollIntoView?.({ block: 'center', behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+  }, []);
   const groupErrors = Object.keys(errors).length ? errors : EMPTY_ERRORS;
+  const availableBytes = result ? toBytes(Number(draft.capacity.replace(',', '.')), draft.unit) : 0;
+  const selectedScenario = scenarios.find(scenario => {
+    const expected = scenarioDraft(scenario, draft.groups[0]!.id);
+    return draft.groups.length === 1 && draft.days === expected.days && draft.capacity === expected.capacity && draft.unit === expected.unit
+      && Object.entries(expected.groups[0]!).every(([key, value]) => draft.groups[0]![key as keyof GroupDraft] === value);
+  });
   return <>
     <a className="skip-link" href="#calculator">{ru.skip}</a>
     <header className="site-header"><div className="header-inner">
@@ -33,8 +48,17 @@ export function Calculator() {
       <span className="privacy"><ShieldCheck size={15} aria-hidden="true" />{ru.badge}</span><ThemeControl />
     </div></header>
     <main id="calculator" tabIndex={-1} className="page-shell">
-      <div className="intro"><div><p className="eyebrow">{ru.eyebrow}</p><h1>{ru.title}</h1></div><p className="intro-copy">{ru.intro}</p></div>
-      <ResultsOverview result={result} days={draft.days} totalError={errors.total} />
+      <div className="dashboard-stage">
+        <ResultsOverview result={result} days={draft.days} capacity={availableBytes} totalError={errors.total} />
+        <section className="panel disk-panel" aria-labelledby="disk-title"><div className="disk-heading"><span className="disk-icon"><HardDrive size={20} aria-hidden="true" /></span><div><p className="section-kicker">ЁМКОСТЬ И ЗАПАС</p><h2 id="disk-title">Ваш HDD. Весь баланс.</h2></div></div>
+          <StorageCapacity result={result} availableBytes={availableBytes} unit={draft.unit} />
+          <div className="disk-inputs"><NumberField id="capacity" label={ru.capacity} value={draft.capacity} error={errors.capacity} onChange={capacity => setDraft(previous => ({ ...previous, capacity }))} />
+            <label className="field"><span>{ru.unit}</span><select value={draft.unit} onChange={e => setDraft(previous => ({ ...previous, unit: e.target.value as StorageUnit }))}>{Object.keys(UNITS).map(unit => <option key={unit}>{unit}</option>)}</select></label>
+          </div>
+          <div className="reverse-result" aria-live="polite"><p>{ru.estimated}</p><strong data-testid="retention">{result ? result.retention.kind === 'unbounded' ? ru.unbounded : <>{format(result.retention.days, 2)} <span>{ru.dayUnit}</span></> : '—'}</strong>{result?.retention.kind === 'unbounded' && <p>{ru.zeroRate}</p>}</div>
+        </section>
+      </div>
+      <ScenarioPresets selected={selectedScenario?.id ?? null} onSelect={scenario => { setDraft(scenarioDraft(scenario, String(nextId.current++))); setSelectedGroupId(null); }} />
       <div className="calculator-layout">
         <section className="panel configuration" aria-labelledby="configuration-title">
           <div className="panel-heading"><div><p className="section-kicker">{ru.systemSetup}</p><h2 id="configuration-title">{ru.configuration}</h2></div>
@@ -55,19 +79,12 @@ export function Calculator() {
           </div>
         </section>
         <div className="analysis-column">
-          {result ? <ArchiveForecast result={result} days={Number(draft.days.replace(',', '.'))} availableBytes={toBytes(Number(draft.capacity.replace(',', '.')), draft.unit)} unit={draft.unit} />
+          {result ? <ArchiveForecast result={result} days={Number(draft.days.replace(',', '.'))} availableBytes={availableBytes} unit={draft.unit} />
             : <section className="panel forecast-panel forecast-unavailable"><h2>{ru.forecastTitle}</h2><p>{ru.invalidHint}</p></section>}
-          <div className="analysis-details">
-            <section className="panel distribution-panel" aria-label={ru.breakdown}>
-              {result ? <StorageBreakdown summaries={result.summaries} totalBytes={result.totalBytes} selectedId={selectedGroupId} onSelect={selectGroup} /> : <><h2>{ru.breakdown}</h2><p className="muted">{ru.invalidHint}</p></>}
-            </section>
-            <section className="panel disk-panel" aria-labelledby="disk-title"><div className="disk-heading"><span className="disk-icon"><HardDrive size={20} aria-hidden="true" /></span><h2 id="disk-title">{ru.disk}</h2></div><p className="muted">{ru.diskHint}</p>
-              <div className="disk-inputs"><NumberField id="capacity" label={ru.capacity} value={draft.capacity} error={errors.capacity} onChange={capacity => setDraft(previous => ({ ...previous, capacity }))} />
-                <label className="field"><span>{ru.unit}</span><select value={draft.unit} onChange={e => setDraft(previous => ({ ...previous, unit: e.target.value as StorageUnit }))}>{Object.keys(UNITS).map(unit => <option key={unit}>{unit}</option>)}</select></label>
-              </div>
-              <div className="reverse-result" aria-live="polite"><p>{ru.estimated}</p><strong data-testid="retention">{result ? result.retention.kind === 'unbounded' ? ru.unbounded : <>{format(result.retention.days, 2)} <span>{ru.dayUnit}</span></> : '—'}</strong>{result?.retention.kind === 'unbounded' && <p>{ru.zeroRate}</p>}</div>
-            </section>
-          </div>
+          <CameraSystem groups={draft.groups} selectedId={selectedGroupId} onSelect={selectGroup} />
+          <section className="panel distribution-panel" aria-label={ru.breakdown}>
+            {result ? <StorageBreakdown summaries={result.summaries} totalBytes={result.totalBytes} selectedId={selectedGroupId} onSelect={selectGroup} /> : <><h2>{ru.breakdown}</h2><p className="muted">{ru.invalidHint}</p></>}
+          </section>
           <div className="assumptions"><Info size={18} aria-hidden="true" /><div><h3>{ru.assumptions}</h3><p>{ru.assumptionText}</p><p>{ru.units}</p><code>{ru.formula}</code></div></div>
         </div>
       </div>

@@ -108,7 +108,7 @@ test('observational load and interaction timings at one and 100 groups', async (
   const timings: Record<string, number[]> = {};
   for (const count of [1, 100]) {
     if (count === 100) for (let i = 1; i < count; i++) await page.getByRole('button', { name: 'Добавить группу' }).click();
-    await expect(page.getByRole('group')).toHaveCount(count);
+    await expect(page.getByRole('group', { name: /^Группа \d+$/ })).toHaveCount(count);
     const input = page.getByRole('group', { name: 'Группа 1', exact: true }).getByLabel('Камер', { exact: true });
     await input.scrollIntoViewIfNeeded();
     timings[String(count)] = [];
@@ -121,6 +121,9 @@ test('observational load and interaction timings at one and 100 groups', async (
   }
   const allocation = page.getByRole('list', { name: 'Распределение архива' });
   await expect(allocation.getByRole('button')).toHaveCount(100);
+  const schematic = page.getByRole('list', { name: 'Схема групп камер' });
+  await expect(schematic.getByRole('button')).toHaveCount(100);
+  await expect(schematic.locator('svg[viewBox="0 0 64 48"]')).toHaveCount(100);
   await allocation.getByRole('button').last().focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('group', { name: 'Группа 100', exact: true }).getByLabel('Камер', { exact: true })).toBeFocused();
