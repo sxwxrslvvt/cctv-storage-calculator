@@ -6,11 +6,11 @@ import { NumberField } from '../ui/NumberField';
 import { isResolution } from '../../domain/storage/calculator';
 
 interface Props {
-  group: GroupDraft; index: number; removable: boolean;
+  group: GroupDraft; index: number; removable: boolean; selected: boolean;
   errors: Readonly<Record<string, string>>;
   onChange: (id: string, patch: Partial<GroupDraft>) => void; onRemove: (id: string) => void;
 }
-export const GroupCard = memo(function GroupCard({ group: g, index, removable, errors, onChange, onRemove }: Props) {
+export const GroupCard = memo(function GroupCard({ group: g, index, removable, selected, errors, onChange, onRemove }: Props) {
   const card = useRef<HTMLFieldSetElement>(null);
   const scheduleError = errors[`${g.id}.schedule`];
   function remove() {
@@ -31,7 +31,7 @@ export const GroupCard = memo(function GroupCard({ group: g, index, removable, e
     }
     onRemove(g.id);
   }
-  return <fieldset ref={card} className="group-card">
+  return <fieldset ref={card} className="group-card" data-selected={selected}>
     <legend className="sr-only">{ru.group} {index + 1}</legend>
     <div className="group-heading"><span className="group-icon"><Camera size={18} aria-hidden="true" /></span>
       <h3>{ru.group} {index + 1}</h3><span className="group-index">{String(index + 1).padStart(2, '0')}</span>
