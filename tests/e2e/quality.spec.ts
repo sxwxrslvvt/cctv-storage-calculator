@@ -68,20 +68,20 @@ test('text resize to 200% preserves controls and results', async ({ page }, test
   expect(enlarged).toBeGreaterThanOrEqual(size * 1.99);
   for (const width of [320, 375]) {
     await page.setViewportSize({ width, height: 812 });
-    for (const font of ['Arial, sans-serif', 'system-ui', '']) {
+    for (const font of ['Arial, sans-serif', 'system-ui', 'Verdana, sans-serif', 'Tahoma, sans-serif', '']) {
       await page.locator('h1').evaluate((element, font) => { element.style.fontFamily = font; }, font);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       expect(await page.locator('h1').evaluate(element => {
         const node = element.firstChild!;
         let offset = 0;
-        return element.textContent!.split(' ').every(word => {
+        return element.textContent!.split(' ').filter(word => {
           const range = document.createRange();
           range.setStart(node, offset);
           range.setEnd(node, offset + word.length);
           offset += word.length + 1;
-          return range.getClientRects().length === 1;
+          return range.getClientRects().length !== 1;
         });
-      })).toBe(true);
+      }), `Split heading words at ${width}px with ${font || 'default font'}`).toEqual([]);
     }
   }
   await page.screenshot({ path: testInfo.outputPath('text-200-percent.png'), fullPage: true });

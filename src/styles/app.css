@@ -289,6 +289,7 @@ footer a { display: flex; align-items: center; gap: .3rem; min-height: 2.75rem; 
   .theme-control { width: 8.5rem; }
   .theme-control select { font-size: .75rem; }
   .page-shell { padding: 1.75rem min(1rem, 16px) 1.25rem; }
+  h1 { font-size: clamp(1.125rem, calc(.5rem + 5vw), 2.875rem); }
   .result-panel { padding: min(1.25rem, 20px); }
   .hero-metrics { padding: min(1.25rem,20px); gap: 1rem; }
   .hero-metrics p { margin-left: 0; }
