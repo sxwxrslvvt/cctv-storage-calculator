@@ -70,7 +70,7 @@ for (const reducedMotion of ['no-preference', 'reduce'] as const) {
     });
     expect(exit).toEqual(reducedMotion === 'reduce' ? null : { inert: true, hidden: 'true', duplicateIds: 0 });
     await expect(page.getByTestId('total-tb')).toHaveText('1,296TB');
-    await expect(page.getByRole('group')).toHaveCount(1);
+    await expect(page.getByRole('group', { name: /^Группа \d+$/ })).toHaveCount(1);
     await expect(page.getByRole('button', { name: 'Добавить группу' })).toBeFocused();
     await expect(page.locator('.group-exit')).toHaveCount(0);
     await page.getByLabel('Оформление').selectOption('dark');

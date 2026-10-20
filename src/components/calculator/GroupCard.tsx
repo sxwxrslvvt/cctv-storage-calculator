@@ -6,11 +6,11 @@ import { NumberField } from '../ui/NumberField';
 import { isResolution } from '../../domain/storage/calculator';
 
 interface Props {
-  group: GroupDraft; index: number; removable: boolean;
+  group: GroupDraft; index: number; removable: boolean; selected: boolean;
   errors: Readonly<Record<string, string>>;
   onChange: (id: string, patch: Partial<GroupDraft>) => void; onRemove: (id: string) => void;
 }
-export const GroupCard = memo(function GroupCard({ group: g, index, removable, errors, onChange, onRemove }: Props) {
+export const GroupCard = memo(function GroupCard({ group: g, index, removable, selected, errors, onChange, onRemove }: Props) {
   const card = useRef<HTMLFieldSetElement>(null);
   const scheduleError = errors[`${g.id}.schedule`];
   function remove() {
@@ -31,7 +31,7 @@ export const GroupCard = memo(function GroupCard({ group: g, index, removable, e
     }
     onRemove(g.id);
   }
-  return <fieldset ref={card} className="group-card">
+  return <fieldset ref={card} className="group-card" data-selected={selected}>
     <legend className="sr-only">{ru.group} {index + 1}</legend>
     <div className="group-heading"><span className="group-icon"><Camera size={18} aria-hidden="true" /></span>
       <h3>{ru.group} {index + 1}</h3><span className="group-index">{String(index + 1).padStart(2, '0')}</span>
@@ -40,6 +40,10 @@ export const GroupCard = memo(function GroupCard({ group: g, index, removable, e
     <div className="group-fields">
       <NumberField id={`${g.id}.count`} label={ru.cameras} value={g.count} error={errors[`${g.id}.count`]} onChange={count => onChange(g.id, { count })} integer />
       <NumberField id={`${g.id}.bitrateMbps`} label={ru.bitrate} value={g.bitrateMbps} error={errors[`${g.id}.bitrateMbps`]} onChange={bitrateMbps => onChange(g.id, { bitrateMbps })} />
+    </div>
+    <details className="group-advanced" open>
+      <summary>Кодек и разрешение <span>{g.codec} · {g.resolution === 'custom' ? `${g.width}×${g.height}` : g.resolution}</span></summary>
+      <div className="group-fields">
       <label className="field"><span>{ru.codec}</span><select value={g.codec} onChange={e => onChange(g.id, { codec: e.target.value as GroupDraft['codec'] })}><option>H.264</option><option>H.265</option></select></label>
       <label className="field"><span>{ru.resolution}</span><select value={g.resolution} onChange={e => {
         const value = e.target.value;
@@ -51,7 +55,8 @@ export const GroupCard = memo(function GroupCard({ group: g, index, removable, e
         <NumberField id={`${g.id}.width`} label={ru.width} value={g.width} error={errors[`${g.id}.width`]} onChange={width => onChange(g.id, { width })} integer />
         <NumberField id={`${g.id}.height`} label={ru.height} value={g.height} error={errors[`${g.id}.height`]} onChange={height => onChange(g.id, { height })} integer />
       </>}
-    </div>
+      </div>
+    </details>
     <label className="field schedule-field"><span className="flex items-center gap-2"><Clock3 size={14} aria-hidden="true" />{ru.recording}</span>
       <select value={g.mode} onChange={e => onChange(g.id, { mode: e.target.value as GroupDraft['mode'] })}><option value="continuous">{ru.continuous}</option><option value="daily">{ru.daily}</option></select>
     </label>

@@ -43,7 +43,7 @@ test('stored theme is applied before the app module loads', async ({ page }) => 
   const navigation = page.goto('./');
   try {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(17, 21, 31)');
+    await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(17, 20, 30)');
     await expect(page.locator('#root')).toBeEmpty();
   } finally { release(); }
   await navigation;
