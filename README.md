@@ -144,3 +144,11 @@ npm run test:e2e
 ## Лицензия
 
 [MIT](LICENSE).
+
+## Карточка проекта
+
+- Назначение: Калькулятор объёма видеоархива CCTV/NVR.
+- Репозиторий: отдельный репозиторий (вложенный, в .gitignore главного), origin github.com/sxwxrslvvt/cctv-storage-calculator
+- Секреты: нет (вне Git)
+- Локальные данные: local/cctv-storage-calculator/ (вне Git)
+- Правила для агентов: корневой `AGENTS.md`; статус: `docs/specs/project-status.md`
